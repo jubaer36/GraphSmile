@@ -123,10 +123,10 @@ os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 world_size = torch.cuda.device_count()
 os.environ['WORLD_SIZE'] = str(world_size)
 
-MELD_path = ''
-IEMOCAP_path = ''
-IEMOCAP4_path = ''
-CMUMOSEI7_path = ''
+MELD_path = 'Dataset/CFN-ESA/meld_multi_features.pkl'
+IEMOCAP_path = 'Dataset/CFN-ESA/iemocap_multi_features.pkl'
+IEMOCAP4_path = 'Dataset/CFN-ESA/iemocap_multi_features_4.pkl'
+CMUMOSEI7_path = 'Dataset/CFN-ESA/cmumosei_multi_regression_features.pkl'
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

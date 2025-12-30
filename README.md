@@ -32,7 +32,7 @@ Adding the dataset path to the corresponding location in the run.py file, e.g. I
 ## Run
 ### IEMOCAP-6
 ```bash
-python -u run.py --gpu 2 --port 1530 --classify emotion \
+python -u run.py --gpu 0 --port 1530 --classify emotion \
 --dataset IEMOCAP --epochs 120 --textf_mode textf0 \
 --loss_type emo_sen_sft --lr 1e-04 --batch_size 16 --hidden_dim 512 \
 --win 17 17 --heter_n_layers 7 7 7 --drop 0.2 --shift_win 19 --lambd 1.0 1.0 0.7
@@ -40,7 +40,7 @@ python -u run.py --gpu 2 --port 1530 --classify emotion \
 
 ### IEMOCAP-4
 ```bash
-python -u run.py --gpu 2 --port 1531 --classify emotion \
+python -u run.py --gpu 0 --port 1531 --classify emotion \
 --dataset IEMOCAP4 --epochs 120 --textf_mode textf0 \
 --loss_type emo_sen_sft --lr 3e-04 --batch_size 16 --hidden_dim 256 \
 --win 5 5 --heter_n_layers 4 4 4 --drop 0.2 --shift_win 10 --lambd 1.0 0.6 0.6
@@ -48,7 +48,7 @@ python -u run.py --gpu 2 --port 1531 --classify emotion \
 
 ### MELD
 ```bash
-python -u run.py --gpu 2 --port 1532 --classify emotion \
+python -u run.py --gpu 0 --port 1532 --classify emotion \
 --dataset MELD --epochs 50 --textf_mode textf0 \
 --loss_type emo_sen_sft --lr 7e-05 --batch_size 16 --hidden_dim 384 \
 --win 3 3 --heter_n_layers 5 5 5 --drop 0.2 --shift_win 3 --lambd 1.0 0.5 0.2
@@ -56,7 +56,7 @@ python -u run.py --gpu 2 --port 1532 --classify emotion \
 
 ### CMUMOSEI
 ```bash
-python -u run.py --gpu 3 --port 1534 --classify emotion \
+python -u run.py --gpu 0 --port 1534 --classify emotion \
 --dataset CMUMOSEI7 --epochs 60 --textf_mode textf0 \
 --loss_type emo_sen_sft --lr 8e-05 --batch_size 32 --hidden_dim 256 \
 --win 5 5 --heter_n_layers 2 2 2 --drop 0.4 --shift_win 2 --lambd 1.0 0.8 1.0
