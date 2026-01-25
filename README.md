@@ -61,3 +61,60 @@ python -u run.py --gpu 0 --port 1534 --classify emotion \
 --loss_type emo_sen_sft --lr 8e-05 --batch_size 32 --hidden_dim 256 \
 --win 5 5 --heter_n_layers 2 2 2 --drop 0.4 --shift_win 2 --lambd 1.0 0.8 1.0
 ```
+
+## Run Inference
+To run inference on specific list of samples using a trained model, use `inference.py`.
+
+### Arguments
+- `--model_path`: Path to the saved model `.pt` file (e.g., `saved_models/avl_IEMOCAP_best.pt`).
+- `--vid`: (Optional) Valid Video ID from the dataset. If omitted, the script lists available VIDs.
+- `--output_mode`: (Optional) Choose output to display: `'emotion'` (default), `'sentiment'`, or `'both'`.
+- **Hyperparameters**: You **MUST** provide the same model hyperparameters used during training (e.g., `--hidden_dim`, `--heter_n_layers`).
+
+### Example: IEMOCAP
+```bash
+python inference.py \
+    --model_path saved_models/avl_IEMOCAP_best.pt \
+    --dataset IEMOCAP \
+    --gpu 0 \
+    --hidden_dim 512 \
+    --heter_n_layers 7 7 7 \
+    --vid Ses05F_impro08 \
+    --output_mode emotion
+```
+
+### Example: IEMOCAP4
+```bash
+python inference.py \
+    --model_path saved_models/avl_IEMOCAP4_best.pt \
+    --dataset IEMOCAP4 \
+    --gpu 0 \
+    --hidden_dim 256 \
+    --heter_n_layers 4 4 4 \
+    --vid Ses05M_impro02 \
+    --output_mode emotion
+```
+
+### Example: MELD
+```bash
+python inference.py \
+    --model_path saved_models/avl_MELD_best.pt \
+    --dataset MELD \
+    --gpu 0 \
+    --hidden_dim 384 \
+    --heter_n_layers 5 5 5 \
+    --vid 1153 \
+    --output_mode emotion
+```
+
+### Example: CMUMOSEI7
+```bash
+python inference.py \
+    --model_path saved_models/avl_CMUMOSEI7_best.pt \
+    --dataset CMUMOSEI7 \
+    --gpu 0 \
+    --hidden_dim 256 \
+    --heter_n_layers 2 2 2 \
+    --vid k8yDywC4gt8 \
+    --output_mode emotion
+```

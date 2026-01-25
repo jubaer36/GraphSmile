@@ -115,6 +115,12 @@ parser.add_argument(
     help='[loss_emotion, loss_sentiment, loss_shift]',
 )
 
+parser.add_argument(
+    '--save_dir',
+    default='saved_models',
+    help='directory to save models',
+)
+
 args = parser.parse_args()
 
 os.environ['MASTER_ADDR'] = 'localhost'
@@ -446,6 +452,16 @@ def main(local_rank):
                     best_label_emo, best_pred_emo = test_label_emo, test_pred_emo
                     best_label_sen, best_pred_sen = test_label_sen, test_pred_sen
 
+            # Save the best model
+            if not os.path.exists(args.save_dir):
+                os.makedirs(args.save_dir)
+            
+            if (args.classify == 'emotion' and best_f1_emo == test_f1_emo) or \
+               (args.classify == 'sentiment' and best_f1_sen == test_f1_sen):
+                save_path = os.path.join(args.save_dir, f'{name_}_best.pt')
+                torch.save(model.state_dict(), save_path)
+                print(f'Best model saved to {save_path}')
+
             if (epoch + 1) % 10 == 0:
                 np.set_printoptions(suppress=True)
                 print(
@@ -529,6 +545,14 @@ def main(local_rank):
                                   digits=4,
                                   zero_division=0))
         print(confusion_matrix(best_label_emo, best_pred_emo))
+
+    if local_rank == 0:
+        # Save the last model
+        if not os.path.exists(args.save_dir):
+            os.makedirs(args.save_dir)
+        save_path = os.path.join(args.save_dir, f'{name_}_last.pt')
+        torch.save(model.state_dict(), save_path)
+        print(f'Last model saved to {save_path}')
 
     dist.destroy_process_group()
 
