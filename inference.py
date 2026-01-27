@@ -237,15 +237,41 @@ def main():
     # Sentiment usually: 0: negative, 1: neutral, 2: positive
     
 
+
+    # Prepare Label Map
+    emotion_map = None
+    sentiment_map = {0: 'Negative', 1: 'Neutral', 2: 'Positive'} # Common for most datasets here
+
+    if args.dataset == 'MELD':
+        emotion_map = {
+            0: 'Neutral', 1: 'Surprise', 2: 'Fear', 3: 'Sadness', 
+            4: 'Joy', 5: 'Disgust', 6: 'Anger'
+        }
+    elif args.dataset == 'IEMOCAP': 
+        # For IEMOCAP: 0:hap, 1:sad, 2:neu, 3:ang, 4:exc, 5:fru
+        emotion_map = {
+            0: 'Happy', 1: 'Sad', 2: 'Neutral', 3: 'Angry', 
+            4: 'Excited', 5: 'Frustrated'
+        }
+    elif args.dataset == 'IEMOCAP4':
+        # Inferred from dataloader sentiment logic: 
+        # 0->Pos, 2->Neu, 1,3->Neg
+        emotion_map = {
+            0: 'Happy', 1: 'Sad', 2: 'Neutral', 3: 'Angry'
+        }
+
     # Calculate metrics
-    def print_mismatches(pred, truth, label_name, sentences=None):
+    def print_mismatches(pred, truth, label_name, sentences=None, label_map=None):
         print("-" * 20)
         print(f"{label_name} Mismatches:")
         mismatches = []
         for i, (p, t) in enumerate(zip(pred, truth)):
             if p != t:
+                p_label = f" ({label_map[p]})" if label_map and p in label_map else ""
+                t_label = f" ({label_map[t]})" if label_map and t in label_map else ""
+                
                 text = f" | Text: \"{sentences[i]}\"" if sentences and i < len(sentences) else ""
-                mismatches.append(f"Index {i}: Pred {p} != Truth {t}{text}")
+                mismatches.append(f"Index {i}: Pred {p}{p_label} != Truth {t}{t_label}{text}")
         
         if not mismatches:
             print("None. Perfect Match!")
@@ -266,13 +292,13 @@ def main():
     if args.output_mode in ['both', 'emotion']:
         print(f"Predicted Emotion Index: {pred_emo}")
         print(f"Ground Truth Emotion: {label_emotion_np}")
-        print_mismatches(pred_emo, label_emotion_np, "Emotion", sentences)
+        print_mismatches(pred_emo, label_emotion_np, "Emotion", sentences, emotion_map)
     
     if args.output_mode in ['both', 'sentiment']:
         print("-" * 20)
         print(f"Predicted Sentiment Index: {pred_sen}")
         print(f"Ground Truth Sentiment: {label_sentiment_np}")
-        print_mismatches(pred_sen, label_sentiment_np, "Sentiment", sentences)
+        print_mismatches(pred_sen, label_sentiment_np, "Sentiment", sentences, sentiment_map)
     
     print("-" * 50)
 
