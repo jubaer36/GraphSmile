@@ -106,24 +106,29 @@ def main():
     target_vid = args.vid
     dataset = None
     index = -1
+    final_vid = None
     
     # Load dataset (train=False)
     test_set = dataset_class(data_path, train=False)
+    # Check if keys are numpy array and convert if needed, else use as is
     test_keys = test_set.keys.tolist() if isinstance(test_set.keys, np.ndarray) else test_set.keys
     
     if target_vid is None:
         print("No video ID provided. Here are some available IDs from the test set:")
+        # Print first 10 keys
         print(test_keys[:10])
         return
 
     if target_vid in test_keys:
         dataset = test_set
         index = test_keys.index(target_vid)
+        final_vid = target_vid
         found = True
         print(f"Found {target_vid} in Test set.")
     elif target_vid.isdigit() and int(target_vid) in test_keys:
         dataset = test_set
         index = test_keys.index(int(target_vid))
+        final_vid = int(target_vid)
         found = True
         print(f"Found {target_vid} (as int) in Test set.")
     else:
@@ -133,14 +138,35 @@ def main():
         if target_vid in train_keys:
             dataset = train_set
             index = train_keys.index(target_vid)
+            final_vid = target_vid
             found = True
             print(f"Found {target_vid} in Train set.")
+        # Try int check for train set as well if needed
+        elif target_vid.isdigit() and int(target_vid) in train_keys:
+            dataset = train_set
+            index = train_keys.index(int(target_vid))
+            final_vid = int(target_vid)
+            found = True
+            print(f"Found {target_vid} (as int) in Train set.")
 
     if not found:
         print(f"Video ID {target_vid} not found in {args.dataset}.")
         return
 
     # Get sample
+    
+    # Retrieve sentences using final_vid
+    try:
+        sentences = dataset.videoSentence[final_vid]
+    except Exception as e:
+        print(f"Warning: Could not retrieve sentences for {final_vid}. Error: {e}")
+        sentences = []
+
+    print("-" * 50)
+    print(f"Total Utterances: {len(sentences)}")
+    for i, s in enumerate(sentences):
+        print(f"Index {i}: {s}")
+    print("-" * 50)
     # The dataset __getitem__ returns a tuple where the last element is VID (which we know), preventing us from using collate_fn directly easily if we just fetch one item.
     # However, model expects batched input. We should use collate_fn.
     
@@ -212,13 +238,14 @@ def main():
     
 
     # Calculate metrics
-    def print_mismatches(pred, truth, label_name):
+    def print_mismatches(pred, truth, label_name, sentences=None):
         print("-" * 20)
         print(f"{label_name} Mismatches:")
         mismatches = []
         for i, (p, t) in enumerate(zip(pred, truth)):
             if p != t:
-                mismatches.append(f"Index {i}: Pred {p} != Truth {t}")
+                text = f" | Text: \"{sentences[i]}\"" if sentences and i < len(sentences) else ""
+                mismatches.append(f"Index {i}: Pred {p} != Truth {t}{text}")
         
         if not mismatches:
             print("None. Perfect Match!")
@@ -239,13 +266,13 @@ def main():
     if args.output_mode in ['both', 'emotion']:
         print(f"Predicted Emotion Index: {pred_emo}")
         print(f"Ground Truth Emotion: {label_emotion_np}")
-        print_mismatches(pred_emo, label_emotion_np, "Emotion")
+        print_mismatches(pred_emo, label_emotion_np, "Emotion", sentences)
     
     if args.output_mode in ['both', 'sentiment']:
         print("-" * 20)
         print(f"Predicted Sentiment Index: {pred_sen}")
         print(f"Ground Truth Sentiment: {label_sentiment_np}")
-        print_mismatches(pred_sen, label_sentiment_np, "Sentiment")
+        print_mismatches(pred_sen, label_sentiment_np, "Sentiment", sentences)
     
     print("-" * 50)
 
