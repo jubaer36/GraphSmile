@@ -130,7 +130,7 @@ world_size = torch.cuda.device_count()
 os.environ['WORLD_SIZE'] = str(world_size)
 
 MELD_path = 'Dataset/CFN-ESA/meld_multi_features.pkl'
-IEMOCAP_path = 'Dataset/CFN-ESA/iemocap_multi_features.pkl'
+IEMOCAP_path = 'Dataset/CFN-ESA/iemocap_vlm_visual.pkl'  # VLM-visual (Longformer 768-dim)
 IEMOCAP4_path = 'Dataset/CFN-ESA/iemocap_multi_features_4.pkl'
 CMUMOSEI7_path = 'Dataset/CFN-ESA/cmumosei_multi_regression_features.pkl'
 
@@ -234,7 +234,7 @@ def main(local_rank):
     modals = args.modals
 
     if args.dataset == 'IEMOCAP':
-        embedding_dims = [1024, 342, 1582]
+        embedding_dims = [1024, 768, 1582]  # visual: 342→768 (Longformer VLM)
     elif args.dataset == 'IEMOCAP4':
         embedding_dims = [1024, 512, 100]
     elif args.dataset == 'MELD':
