@@ -234,7 +234,7 @@ def main(local_rank):
     modals = args.modals
 
     if args.dataset == 'IEMOCAP':
-        embedding_dims = [1024, 768, 1582]  # visual: 342→768 (Longformer VLM)
+        embedding_dims = [1024, 1024, 1582]  # visual: 342→1024 (BERT-large chunked VLM)
     elif args.dataset == 'IEMOCAP4':
         embedding_dims = [1024, 512, 100]
     elif args.dataset == 'MELD':
