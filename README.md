@@ -118,3 +118,45 @@ python inference.py \
     --vid k8yDywC4gt8 \
     --output_mode emotion
 ```
+
+## Hyperparameter Optimization (HPO)
+Automatically search for the best hyperparameters using [Optuna](https://optuna.org/) via `hpo.py`. Supported datasets: **MELD** and **IEMOCAP-6**.
+
+### Requirements
+```bash
+pip install optuna
+```
+
+### Arguments
+- `--dataset`: Dataset to optimize — `MELD` or `IEMOCAP`.
+- `--gpu`: GPU id(s) to use (same as `run.py --gpu`).
+- `--n_trials`: Number of Optuna trials (default: `40`). More trials = better search coverage.
+- `--n_epochs`: Epochs per trial (default: `20`). Use fewer than the full count for faster search.
+- `--storage`: Optuna storage URL, e.g. `sqlite:///hpo.db`. Enables pause/resume across runs.
+- `--retrain`: After the search, automatically retrain the best config for the full epoch count.
+- `--study_name`: Custom name for the Optuna study (default: `hpo_<dataset>`).
+- `--base_port`: Starting `MASTER_PORT`; auto-increments per trial (default: `15400`).
+- `--classify`: `emotion` (default) or `sentiment`.
+
+### Example: MELD
+```bash
+conda run -n ml python hpo.py \
+    --dataset MELD --gpu 0 \
+    --n_trials 40 --n_epochs 20 \
+    --storage sqlite:///hpo.db \
+    --retrain
+```
+
+### Example: IEMOCAP-6
+```bash
+conda run -n ml python hpo.py \
+    --dataset IEMOCAP --gpu 0 \
+    --n_trials 40 --n_epochs 30 \
+    --storage sqlite:///hpo.db \
+    --retrain
+```
+
+### Output
+- Prints the best hyperparameters and their test F1 score at the end of the search.
+- Prints the exact `run.py` command to reproduce the best configuration.
+- Saves a CSV of all trial results to `results/hpo_<dataset>_trials.csv`.
