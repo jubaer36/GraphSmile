@@ -88,7 +88,8 @@ class GraphSmile(nn.Module):
                                       args.shift_win)
 
     def forward(self, feature_t0, feature_t1, feature_t2, feature_t3,
-                feature_v, feature_a, umask, qmask, dia_lengths):
+                feature_v, feature_a, umask, qmask, dia_lengths,
+                save_feats=False):
 
         all_t_features = [feature_t0, feature_t1, feature_t2, feature_t3]
         seq_len_t, batch_size_t, feature_dim_t = feature_t0.shape
@@ -114,14 +115,31 @@ class GraphSmile(nn.Module):
         emo_t, emo_v, emo_a = batch_to_all_tva(emo_t, emo_v, emo_a,
                                                dia_lengths, self.no_cuda)
 
+        stage_feats = {}
+        if save_feats:
+            stage_feats['proj_t'] = emo_t.detach().cpu().numpy()
+            stage_feats['proj_v'] = emo_v.detach().cpu().numpy()
+            stage_feats['proj_a'] = emo_a.detach().cpu().numpy()
+
         featheter_tv, heter_edge_index = self.hetergconv_tv(
             (emo_t, emo_v), dia_lengths, self.win_p, self.win_f)
+        if save_feats:
+            stage_feats['graph_tv_t'] = featheter_tv[0].detach().cpu().numpy()
+            stage_feats['graph_tv_v'] = featheter_tv[1].detach().cpu().numpy()
+
         featheter_ta, heter_edge_index = self.hetergconv_ta(
             (emo_t, emo_a), dia_lengths, self.win_p, self.win_f,
             heter_edge_index)
+        if save_feats:
+            stage_feats['graph_ta_t'] = featheter_ta[0].detach().cpu().numpy()
+            stage_feats['graph_ta_a'] = featheter_ta[1].detach().cpu().numpy()
+
         featheter_va, heter_edge_index = self.hetergconv_va(
             (emo_v, emo_a), dia_lengths, self.win_p, self.win_f,
             heter_edge_index)
+        if save_feats:
+            stage_feats['graph_va_v'] = featheter_va[0].detach().cpu().numpy()
+            stage_feats['graph_va_a'] = featheter_va[1].detach().cpu().numpy()
 
         feat_fusion = (self.modal_fusion(featheter_tv[0]) + self.modal_fusion(
             featheter_ta[0]) + self.modal_fusion(featheter_tv[1]) +
@@ -129,9 +147,12 @@ class GraphSmile(nn.Module):
                        self.modal_fusion(featheter_ta[1]) +
                        self.modal_fusion(featheter_va[1])) / 6
 
+        if save_feats:
+            stage_feats['fusion'] = feat_fusion.detach().cpu().numpy()
+
         logit_emo = self.emo_output(feat_fusion)
         logit_sen = self.sen_output(feat_fusion)
 
         logit_shift = self.senshift(feat_fusion, feat_fusion, dia_lengths)
 
-        return logit_emo, logit_sen, logit_shift, feat_fusion
+        return logit_emo, logit_sen, logit_shift, feat_fusion, stage_feats

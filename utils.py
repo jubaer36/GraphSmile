@@ -1,5 +1,36 @@
 import torch
 import torch.nn as nn
+import numpy as np
+
+# Hard-to-separate emotion pairs per dataset (label indices)
+HARD_PAIRS = {
+    'IEMOCAP': [(0, 4), (1, 5), (2, 5), (3, 5)],   # hap/exc, sad/fru, neu/fru, ang/fru
+    'IEMOCAP4': [(0, 2), (1, 3)],                    # hap/neu, sad/ang
+    'MELD': [(0, 4), (0, 3), (5, 6)],               # neu/joy, neu/sad, dis/ang
+    'CMUMOSEI7': [(0, 1), (2, 3), (4, 5)],          # adjacent sentiment levels
+}
+
+
+def within_pair_error_analysis(labels, preds, dataset):
+    """Print within-pair error rates for hard emotion pairs."""
+    labels = np.asarray(labels)
+    preds = np.asarray(preds)
+    pairs = HARD_PAIRS.get(dataset, [])
+    if not pairs:
+        print(f"No hard pairs defined for dataset '{dataset}'.")
+        return
+
+    print('\n── Within-pair error rate analysis ──')
+    for a, b in pairs:
+        mask = np.isin(labels, [a, b])
+        n = mask.sum()
+        if n == 0:
+            continue
+        err = np.mean(
+            [(yt == a and yp == b) or (yt == b and yp == a)
+             for yt, yp in zip(labels[mask], preds[mask])]
+        )
+        print(f"  pair {a}-{b} | n={n:4d}  within-pair err rate={err:.3f}")
 
 
 def batch_to_all_tva(feature_t, feature_v, feature_a, lengths, no_cuda):

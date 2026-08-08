@@ -11,7 +11,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.multiprocessing as mp
 from torch.utils.data.distributed import DistributedSampler
 import time
-from utils import AutomaticWeightedLoss
+from utils import AutomaticWeightedLoss, within_pair_error_analysis
 from model import GraphSmile
 from sklearn.metrics import confusion_matrix, classification_report
 from trainer import train_or_eval_model, seed_everything
@@ -119,6 +119,17 @@ parser.add_argument(
     '--save_dir',
     default='saved_models',
     help='directory to save models',
+)
+parser.add_argument(
+    '--save_feats',
+    action='store_true',
+    default=True,
+    help='save intermediate stage features for visualization',
+)
+parser.add_argument(
+    '--save_feats_path',
+    default='results/stage_feats.pkl',
+    help='path to save stage features pkl',
 )
 
 args = parser.parse_args()
@@ -347,7 +358,7 @@ def main(local_rank):
 
         start_time = time.time()
 
-        train_loss, _, _, train_acc_emo, train_f1_emo, _, _, train_acc_sen, train_f1_sen, train_acc_sft, train_f1_sft, _, _, _ = train_or_eval_model(
+        train_loss, _, _, train_acc_emo, train_f1_emo, _, _, train_acc_sen, train_f1_sen, train_acc_sft, train_f1_sft, _, _, _, _ = train_or_eval_model(
             model,
             loss_function_emo,
             loss_function_sen,
@@ -366,7 +377,7 @@ def main(local_rank):
             args.shift_win,
         )
 
-        valid_loss, _, _, valid_acc_emo, valid_f1_emo, _, _, valid_acc_sen, valid_f1_sen, valid_acc_sft, valid_f1_sft, _, _, _ = train_or_eval_model(
+        valid_loss, _, _, valid_acc_emo, valid_f1_emo, _, _, valid_acc_sen, valid_f1_sen, valid_acc_sft, valid_f1_sft, _, _, _, _ = train_or_eval_model(
             model,
             loss_function_emo,
             loss_function_sen,
@@ -398,7 +409,7 @@ def main(local_rank):
             ))
 
         if local_rank == 0:
-            test_loss, test_label_emo, test_pred_emo, test_acc_emo, test_f1_emo, test_label_sen, test_pred_sen, test_acc_sen, test_f1_sen, test_acc_sft, test_f1_sft, _, test_initial_feats, test_extracted_feats = train_or_eval_model(
+            test_loss, test_label_emo, test_pred_emo, test_acc_emo, test_f1_emo, test_label_sen, test_pred_sen, test_acc_sen, test_f1_sen, test_acc_sft, test_f1_sft, _, test_initial_feats, test_extracted_feats, test_stage_feats = train_or_eval_model(
                 model,
                 loss_function_emo,
                 loss_function_sen,
@@ -415,6 +426,7 @@ def main(local_rank):
                 args.epochs,
                 args.classify,
                 args.shift_win,
+                save_feats=args.save_feats,
             )
 
             all_f1_emo.append(test_f1_emo)
@@ -455,12 +467,18 @@ def main(local_rank):
             # Save the best model
             if not os.path.exists(args.save_dir):
                 os.makedirs(args.save_dir)
-            
-            if (args.classify == 'emotion' and best_f1_emo == test_f1_emo) or \
-               (args.classify == 'sentiment' and best_f1_sen == test_f1_sen):
+
+            is_best = (args.classify == 'emotion' and best_f1_emo == test_f1_emo) or \
+                      (args.classify == 'sentiment' and best_f1_sen == test_f1_sen)
+            if is_best:
                 save_path = os.path.join(args.save_dir, f'{name_}_best.pt')
                 torch.save(model.state_dict(), save_path)
                 print(f'Best model saved to {save_path}')
+                if args.save_feats and test_stage_feats:
+                    os.makedirs(os.path.dirname(args.save_feats_path) or '.', exist_ok=True)
+                    with open(args.save_feats_path, 'wb') as f:
+                        pk.dump(test_stage_feats, f)
+                    print(f'Stage features saved to {args.save_feats_path}')
 
             if (epoch + 1) % 10 == 0:
                 np.set_printoptions(suppress=True)
@@ -545,6 +563,7 @@ def main(local_rank):
                                   digits=4,
                                   zero_division=0))
         print(confusion_matrix(best_label_emo, best_pred_emo))
+        within_pair_error_analysis(best_label_emo, best_pred_emo, args.dataset)
 
     if local_rank == 0:
         # Save the last model

@@ -35,12 +35,15 @@ def train_or_eval_model(
     epochs=100,
     classify='',
     shift_win=5,
+    save_feats=False,
 ):
     losses, preds_emo, labels_emo = [], [], []
     preds_sft, labels_sft = [], []
     preds_sen, labels_sen = [], []
     vids = []
     initial_feats, extracted_feats = [], []
+    all_stage_feats = {}
+    all_stage_labels = []
 
     assert not train or optimizer != None
     if train:
@@ -66,9 +69,26 @@ def train_or_eval_model(
         label_emo = torch.cat(label_emotions)
         label_sen = torch.cat(label_sentiments)
 
-        logit_emo, logit_sen, logit_sft, extracted_feature = model(
+        if save_feats:
+            raw_t_parts, raw_v_parts, raw_a_parts = [], [], []
+            for j, dlen in enumerate(dia_lengths):
+                avg_t = (textf0[:dlen, j] + textf1[:dlen, j] +
+                         textf2[:dlen, j] + textf3[:dlen, j]).detach().cpu().numpy() / 4
+                raw_t_parts.append(avg_t)
+                raw_v_parts.append(visuf[:dlen, j].detach().cpu().numpy())
+                raw_a_parts.append(acouf[:dlen, j].detach().cpu().numpy())
+
+        logit_emo, logit_sen, logit_sft, extracted_feature, stage_feats = model(
             textf0, textf1, textf2, textf3, visuf, acouf, umask, qmask,
-            dia_lengths)
+            dia_lengths, save_feats=save_feats)
+
+        if save_feats:
+            all_stage_labels.append(label_emo.cpu().numpy())
+            stage_feats['raw_t'] = np.concatenate(raw_t_parts, axis=0)
+            stage_feats['raw_v'] = np.concatenate(raw_v_parts, axis=0)
+            stage_feats['raw_a'] = np.concatenate(raw_a_parts, axis=0)
+            for k, v in stage_feats.items():
+                all_stage_feats.setdefault(k, []).append(v)
 
         prob_emo = F.log_softmax(logit_emo, -1)
         loss_emo = loss_function_emo(prob_emo, label_emo)
@@ -116,6 +136,11 @@ def train_or_eval_model(
 
         extracted_feats.append(extracted_feature.cpu().detach().numpy())
 
+    if save_feats and all_stage_feats:
+        for k in all_stage_feats:
+            all_stage_feats[k] = np.concatenate(all_stage_feats[k], axis=0)
+        all_stage_feats['labels'] = np.concatenate(all_stage_labels)
+
     if preds_emo != []:
         preds_emo = np.concatenate(preds_emo)
         labels_emo = np.concatenate(labels_emo)
@@ -148,4 +173,4 @@ def train_or_eval_model(
     avg_f1_sft = round(
         f1_score(labels_sft, preds_sft, average='weighted') * 100, 2)
 
-    return avg_loss, labels_emo, preds_emo, avg_acc_emo, avg_f1_emo, labels_sen, preds_sen, avg_acc_sen, avg_f1_sen, avg_acc_sft, avg_f1_sft, vids, initial_feats, extracted_feats
+    return avg_loss, labels_emo, preds_emo, avg_acc_emo, avg_f1_emo, labels_sen, preds_sen, avg_acc_sen, avg_f1_sen, avg_acc_sft, avg_f1_sft, vids, initial_feats, extracted_feats, all_stage_feats
